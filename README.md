@@ -1,72 +1,39 @@
 # SpringFlow
 
-> A Spring Boot framework for building backend APIs with automatically
-> generated TypeScript clients and React frontends.
+> A Spring Boot framework for building type-safe React frontends from Java endpoints.
 
-SpringFlow connects:
+SpringFlow connects **Spring Boot**, **Java**, and **React + TypeScript** by automatically generating TypeScript API clients and model interfaces from annotated Java endpoints.
 
-Java → Spring Boot → TypeScript → React
-
-The goal is to provide a development experience similar to modern
-full-stack frameworks while keeping Spring Boot at the core.
+The goal is to provide a development experience similar to frameworks such as Hilla while keeping Spring Boot at the center of the application.
 
 ---
 
-## Features
+## 🚀 What is SpringFlow?
 
-- Spring Boot integration
-- Java endpoint annotations
-- Automatic TypeScript client generation
-- Automatic TypeScript model generation
-- React frontend project generation
-- Vite frontend
-- TypeScript support
-- Automatic Java package → TypeScript folder mapping
-- Generated API clients
-- CLI project creation
-- Maven integration
+SpringFlow allows you to define your backend API using normal Java methods and annotations.
 
----
-
-## Architecture
-
-SpringFlow consists of several modules:
-
-springflow-core
-    Core annotations and API definitions.
-
-springflow-processor
-    Java annotation processor responsible for generating TypeScript.
-
-springflow-runtime
-    Runtime responsible for exposing SpringFlow endpoints.
-
-springflow-boot-starter
-    Spring Boot integration.
-
-springflow-typescript
-    TypeScript client/runtime support.
-
-springflow-cli
-    Command-line project generator.
-
----
-
-## Example
-
-Java:
+For example:
 
 ```java
-package com.example.demo.employees;
-
-import dev.springflow.core.annotation.Endpoint;
-import dev.springflow.core.annotation.EndpointMethod;
-
 @Endpoint
 public class EmployeeEndpoint {
 
     @EndpointMethod
     public List<Employee> findAll() {
         return employees;
+    }
+
+    @EndpointMethod
+    public Employee findById(Long id) {
+        return findEmployee(id);
+    }
+
+    @EndpointMethod
+    public Employee create(
+            String name,
+            String email,
+            String department
+    ) {
+        // ...
     }
 }
