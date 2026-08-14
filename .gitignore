@@ -1,0 +1,51 @@
+# Maven
+target/
+**/target/
+
+# Java
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.project
+.classpath
+.settings/
+
+# Node
+node_modules/
+**/node_modules/
+
+# Frontend builds
+dist/
+**/dist/
+build/
+**/build/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary
+*.tmp
+*.temp
+
+# Generated frontend output
+springflow-demo/target/
+test-app/target/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Local configuration
+application-local.properties
+application-local.yml
+
+# npm
+npm-debug.log*
