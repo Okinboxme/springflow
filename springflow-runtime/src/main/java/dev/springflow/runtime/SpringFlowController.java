@@ -171,9 +171,7 @@ public class SpringFlowController {
                 continue;
             }
 
-            if (method.getParameterCount() == 1) {
-                return method;
-            }
+            return method;
         }
 
         return null;
@@ -238,41 +236,218 @@ public class SpringFlowController {
             return new Object[0];
         }
 
-        if (parameters.length != 1) {
-            throw new IllegalArgumentException(
-                    "SpringFlow POST methods currently "
-                            + "support one JSON body parameter"
-            );
-        }
-
         if (body == null || body.isBlank()) {
             throw new IllegalArgumentException(
                     "Request body is required"
             );
         }
 
-        Class<?> parameterType =
-                parameters[0].getType();
+        /*
+         * Single custom-type parameter:
+         * deserialize the entire body as that type.
+         */
+        if (parameters.length == 1
+                && !isSimpleType(
+                        parameters[0].getType())) {
 
+            try {
+
+                Object argument =
+                        objectMapper.readValue(
+                                body,
+                                parameters[0]
+                                        .getType()
+                        );
+
+                return new Object[]{
+                        argument
+                };
+
+            } catch (
+                    JsonProcessingException e) {
+
+                throw new IllegalArgumentException(
+                        "Invalid JSON request body",
+                        e
+                );
+            }
+        }
+
+        /*
+         * Multiple parameters or simple types:
+         * parse body as a named-field map and
+         * extract each parameter by name.
+         */
         try {
 
-            Object argument =
+            @SuppressWarnings("unchecked")
+            Map<String, Object> map =
                     objectMapper.readValue(
                             body,
-                            parameterType
+                            Map.class
                     );
 
-            return new Object[]{
-                    argument
-            };
+            Object[] arguments =
+                    new Object[parameters.length];
 
-        } catch (JsonProcessingException e) {
+            for (int i = 0;
+                 i < parameters.length;
+                 i++) {
+
+                var parameter =
+                        parameters[i];
+
+                String paramName =
+                        parameter.getName();
+
+                Object raw =
+                        map.get(paramName);
+
+                if (raw == null) {
+                    throw new IllegalArgumentException(
+                            "Missing parameter: "
+                                    + paramName
+                    );
+                }
+
+                arguments[i] =
+                        convertPostValue(
+                                raw,
+                                parameter.getType()
+                        );
+            }
+
+            return arguments;
+
+        } catch (
+                JsonProcessingException e) {
 
             throw new IllegalArgumentException(
                     "Invalid JSON request body",
                     e
             );
         }
+    }
+
+    // ============================================================
+    // POST VALUE CONVERSION
+    // ============================================================
+
+    private Object convertPostValue(
+            Object value,
+            Class<?> type) {
+
+        if (type == String.class) {
+            return String.valueOf(value);
+        }
+
+        if (type == int.class
+                || type == Integer.class) {
+
+            return ((Number) value).intValue();
+        }
+
+        if (type == long.class
+                || type == Long.class) {
+
+            return ((Number) value).longValue();
+        }
+
+        if (type == double.class
+                || type == Double.class) {
+
+            return ((Number) value).doubleValue();
+        }
+
+        if (type == float.class
+                || type == Float.class) {
+
+            return ((Number) value).floatValue();
+        }
+
+        if (type == short.class
+                || type == Short.class) {
+
+            return ((Number) value).shortValue();
+        }
+
+        if (type == byte.class
+                || type == Byte.class) {
+
+            return ((Number) value).byteValue();
+        }
+
+        if (type == boolean.class
+                || type == Boolean.class) {
+
+            return (Boolean) value;
+        }
+
+        if (type == char.class
+                || type == Character.class) {
+
+            String s =
+                    String.valueOf(value);
+
+            if (s.length() != 1) {
+                throw new IllegalArgumentException(
+                        "Invalid character value: "
+                                + s
+                );
+            }
+
+            return s.charAt(0);
+        }
+
+        /*
+         * Custom type — convert from Map.
+         */
+        if (value instanceof Map) {
+
+            try {
+
+                return objectMapper.convertValue(
+                        value,
+                        type
+                );
+
+            } catch (Exception e) {
+
+                throw new IllegalArgumentException(
+                        "Cannot convert value to "
+                                + type.getName(),
+                        e
+                );
+            }
+        }
+
+        return value;
+    }
+
+    // ============================================================
+    // SIMPLE TYPE CHECK
+    // ============================================================
+
+    private boolean isSimpleType(
+            Class<?> type) {
+
+        return type == String.class
+                || type == int.class
+                || type == Integer.class
+                || type == long.class
+                || type == Long.class
+                || type == double.class
+                || type == Double.class
+                || type == float.class
+                || type == Float.class
+                || type == short.class
+                || type == Short.class
+                || type == byte.class
+                || type == Byte.class
+                || type == boolean.class
+                || type == Boolean.class
+                || type == char.class
+                || type == Character.class;
     }
 
     // ============================================================

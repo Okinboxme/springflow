@@ -1,44 +1,79 @@
-import { useEffect, useState } from "react";
-import { EmployeeEndpoint } from "../springflow/generated/dev/springflow/demo/employees/EmployeeEndpoint";
+import { useCallback, useState } from "react";
 import type { Employee } from "../springflow/generated/dev/springflow/demo/employees/Employee";
+import { useEmployees } from "../hooks/useEmployees";
+import { ConfirmDialog } from "../components/ConfirmDialog";
+import { SearchInput } from "../components/SearchInput";
+import { StatusBadge } from "../components/StatusBadge";
+import { ToastContainer, type ToastItem } from "../components/Toast";
+
+interface FormErrors {
+  name?: string;
+  email?: string;
+  department?: string;
+}
+
+function validate(
+  name: string,
+  email: string,
+  department: string
+): FormErrors {
+  const errors: FormErrors = {};
+
+  if (!name.trim()) {
+    errors.name = "Name is required.";
+  } else if (name.trim().length < 2) {
+    errors.name = "Name must be at least 2 characters.";
+  }
+
+  if (!email.trim()) {
+    errors.email = "Email is required.";
+  } else if (!email.includes("@")) {
+    errors.email = "Email must be valid.";
+  }
+
+  if (!department.trim()) {
+    errors.department = "Department is required.";
+  }
+
+  return errors;
+}
 
 function EmployeePage() {
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const {
+    employees,
+    totalCount,
+    loading,
+    searchQuery,
+    setSearchQuery,
+    createEmployee,
+    updateEmployee,
+    deleteEmployee,
+  } = useEmployees();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [department, setDepartment] = useState("");
   const [active, setActive] = useState(true);
-
   const [editingId, setEditingId] = useState<number | null>(null);
-
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [errors, setErrors] = useState<FormErrors>({});
 
-  useEffect(() => {
-    loadEmployees();
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
+
+  const addToast = useCallback(
+    (type: "success" | "error", message: string) => {
+      setToasts((prev) => [
+        ...prev,
+        { id: Date.now(), type, message },
+      ]);
+    },
+    []
+  );
+
+  const dismissToast = useCallback((id: number) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
-
-  async function loadEmployees() {
-    setLoading(true);
-    setError("");
-
-    try {
-      const result = await EmployeeEndpoint.findAll();
-      setEmployees(result);
-    } catch (err) {
-      console.error(err);
-
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to load employees"
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
 
   function resetForm() {
     setName("");
@@ -46,6 +81,7 @@ function EmployeePage() {
     setDepartment("");
     setActive(true);
     setEditingId(null);
+    setErrors({});
   }
 
   function editEmployee(employee: Employee) {
@@ -54,88 +90,77 @@ function EmployeePage() {
     setEmail(employee.email);
     setDepartment(employee.department);
     setActive(employee.active);
+    setErrors({});
   }
 
-  async function saveEmployee() {
-    if (!name.trim()) {
-      setError("Employee name is required.");
-      return;
-    }
+  async function handleSave() {
+    const validationErrors = validate(name, email, department);
+    setErrors(validationErrors);
 
-    if (!email.trim()) {
-      setError("Employee email is required.");
-      return;
-    }
-
-    if (!department.trim()) {
-      setError("Department is required.");
+    if (Object.keys(validationErrors).length > 0) {
       return;
     }
 
     setSaving(true);
-    setError("");
 
-    try {
-      if (editingId === null) {
-        await EmployeeEndpoint.create(
-          name,
-          email,
-          department
-        );
-      } else {
-        await EmployeeEndpoint.update(
-          editingId,
-          name,
-          email,
-          department,
-          active
-        );
-      }
+    const success =
+      editingId === null
+        ? await createEmployee(
+            name.trim(),
+            email.trim(),
+            department.trim()
+          )
+        : await updateEmployee(
+            editingId,
+            name.trim(),
+            email.trim(),
+            department.trim(),
+            active
+          );
 
+    setSaving(false);
+
+    if (success) {
       resetForm();
-
-      await loadEmployees();
-    } catch (err) {
-      console.error(err);
-
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to save employee"
+      addToast(
+        "success",
+        editingId === null
+          ? "Employee created."
+          : "Employee updated."
       );
-    } finally {
-      setSaving(false);
     }
   }
 
-  async function deleteEmployee(id: number) {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this employee?"
-    );
+  async function handleDeleteConfirm() {
+    if (!deleteTarget) return;
 
-    if (!confirmed) {
-      return;
-    }
+    setDeleteTarget(null);
 
-    setError("");
+    const success = await deleteEmployee(deleteTarget.id);
 
-    try {
-      await EmployeeEndpoint.delete(id);
-
-      await loadEmployees();
-    } catch (err) {
-      console.error(err);
-
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Failed to delete employee"
-      );
+    if (success) {
+      addToast("success", "Employee deleted.");
     }
   }
 
   return (
     <div className="min-h-screen bg-slate-50 p-8">
+
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete Employee"
+        message={
+          deleteTarget
+            ? `Are you sure you want to delete ${deleteTarget.name}? This action cannot be undone.`
+            : ""
+        }
+        confirmLabel="Delete"
+        destructive
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
+      />
 
       <div className="mx-auto max-w-7xl">
 
@@ -165,13 +190,6 @@ function EmployeePage() {
 
         </div>
 
-        {/* Error */}
-        {error && (
-          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-            {error}
-          </div>
-        )}
-
         <div className="grid gap-6 lg:grid-cols-3">
 
           {/* Employee form */}
@@ -199,10 +217,28 @@ function EmployeePage() {
 
                 <input
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    if (errors.name) {
+                      setErrors((prev) => ({
+                        ...prev,
+                        name: undefined,
+                      }));
+                    }
+                  }}
                   placeholder="John Doe"
-                  className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                  className={
+                    errors.name
+                      ? "w-full rounded-lg border border-red-300 px-4 py-3 outline-none focus:border-red-500"
+                      : "w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                  }
                 />
+
+                {errors.name && (
+                  <p className="mt-1 text-xs text-red-600">
+                    {errors.name}
+                  </p>
+                )}
               </div>
 
               {/* Email */}
@@ -214,10 +250,28 @@ function EmployeePage() {
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (errors.email) {
+                      setErrors((prev) => ({
+                        ...prev,
+                        email: undefined,
+                      }));
+                    }
+                  }}
                   placeholder="john@example.com"
-                  className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                  className={
+                    errors.email
+                      ? "w-full rounded-lg border border-red-300 px-4 py-3 outline-none focus:border-red-500"
+                      : "w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                  }
                 />
+
+                {errors.email && (
+                  <p className="mt-1 text-xs text-red-600">
+                    {errors.email}
+                  </p>
+                )}
               </div>
 
               {/* Department */}
@@ -228,10 +282,28 @@ function EmployeePage() {
 
                 <input
                   value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
+                  onChange={(e) => {
+                    setDepartment(e.target.value);
+                    if (errors.department) {
+                      setErrors((prev) => ({
+                        ...prev,
+                        department: undefined,
+                      }));
+                    }
+                  }}
                   placeholder="ICT"
-                  className="w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                  className={
+                    errors.department
+                      ? "w-full rounded-lg border border-red-300 px-4 py-3 outline-none focus:border-red-500"
+                      : "w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-blue-500"
+                  }
                 />
+
+                {errors.department && (
+                  <p className="mt-1 text-xs text-red-600">
+                    {errors.department}
+                  </p>
+                )}
               </div>
 
               {/* Active */}
@@ -258,7 +330,7 @@ function EmployeePage() {
               <div className="flex gap-3 pt-2">
 
                 <button
-                  onClick={saveEmployee}
+                  onClick={handleSave}
                   disabled={saving}
                   className="flex-1 rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                 >
@@ -287,26 +359,39 @@ function EmployeePage() {
           {/* Employee table */}
           <div className="rounded-xl border bg-white shadow-sm lg:col-span-2">
 
-            <div className="flex items-center justify-between border-b p-6">
+            <div className="border-b p-6">
 
-              <div>
-                <h2 className="text-xl font-semibold text-slate-900">
-                  Employee List
-                </h2>
+              <div className="flex items-center justify-between">
 
-                <p className="mt-1 text-sm text-slate-500">
-                  {employees.length} employee
-                  {employees.length === 1 ? "" : "s"}
-                </p>
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-900">
+                    Employee List
+                  </h2>
+
+                  <p className="mt-1 text-sm text-slate-500">
+                    {searchQuery
+                      ? `${employees.length} of ${totalCount} employees`
+                      : `${totalCount} employee${totalCount === 1 ? "" : "s"}`}
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => {}}
+                  disabled={loading}
+                  className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  {loading ? "Loading..." : "Refresh"}
+                </button>
+
               </div>
 
-              <button
-                onClick={loadEmployees}
-                disabled={loading}
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-              >
-                {loading ? "Loading..." : "Refresh"}
-              </button>
+              <div className="mt-4">
+                <SearchInput
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  placeholder="Search employees..."
+                />
+              </div>
 
             </div>
 
@@ -363,7 +448,9 @@ function EmployeePage() {
                         colSpan={6}
                         className="px-6 py-10 text-center text-sm text-slate-500"
                       >
-                        No employees found.
+                        {searchQuery
+                          ? "No employees match your search."
+                          : "No employees found."}
                       </td>
                     </tr>
                   )}
@@ -391,19 +478,7 @@ function EmployeePage() {
                       </td>
 
                       <td className="px-6 py-4">
-
-                        <span
-                          className={
-                            employee.active
-                              ? "rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700"
-                              : "rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600"
-                          }
-                        >
-                          {employee.active
-                            ? "Active"
-                            : "Inactive"}
-                        </span>
-
+                        <StatusBadge active={employee.active} />
                       </td>
 
                       <td className="px-6 py-4">
@@ -421,7 +496,7 @@ function EmployeePage() {
 
                           <button
                             onClick={() =>
-                              deleteEmployee(employee.id)
+                              setDeleteTarget(employee)
                             }
                             className="rounded-lg border border-red-200 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50"
                           >

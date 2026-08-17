@@ -45,6 +45,32 @@ public class SpringFlowClientGenerator {
 
                         return await response.json();
                     }
+
+                    static async post<T>(
+                        url: string,
+                        body?: Record<string, unknown>
+                    ): Promise<T> {
+
+                        const response =
+                            await fetch(url, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: body
+                                    ? JSON.stringify(body)
+                                    : undefined,
+                            });
+
+                        if (!response.ok) {
+
+                            throw new Error(
+                                `SpringFlow request failed: ${response.status} ${response.statusText}`
+                            );
+                        }
+
+                        return await response.json();
+                    }
                 }
                 """;
     }

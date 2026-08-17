@@ -468,10 +468,10 @@ private void generateMethod(
     } else {
 
         /*
-         * Parameters exist.
+         * Parameters exist — use POST with JSON body.
          */
         output.append(
-                "        return SpringFlowClient.get<"
+                "        return SpringFlowClient.post<"
         )
                 .append(returnType)
                 .append(">(\n");
@@ -632,7 +632,7 @@ private void generateMethod(
                                     name.length() - 1
                             );
 
-                    yield toTypeScriptName(
+                    yield mapGenericType(
                             inner
                     ) + "[]";
                 }
@@ -649,7 +649,7 @@ private void generateMethod(
                                     name.length() - 1
                             );
 
-                    yield toTypeScriptName(
+                    yield mapGenericType(
                             inner
                     ) + "[]";
                 }
@@ -666,9 +666,46 @@ private void generateMethod(
                                     name.length() - 1
                             );
 
-                    yield toTypeScriptName(
+                    yield mapGenericType(
                             inner
                     ) + " | null";
+                }
+
+                /*
+                 * Map<K,V>
+                 */
+                if (name.startsWith(
+                        "java.util.Map<")) {
+
+                    String inner =
+                            name.substring(
+                                    "java.util.Map<".length(),
+                                    name.length() - 1
+                            );
+
+                    int separator =
+                            topLevelComma(inner);
+
+                    String key =
+                            mapGenericType(
+                                    inner.substring(
+                                            0,
+                                            separator
+                                    )
+                            );
+
+                    String value =
+                            mapGenericType(
+                                    inner.substring(
+                                            separator + 1
+                                    )
+                            );
+
+                    yield "Record<"
+                            + key
+                            + ", "
+                            + value
+                            + ">";
                 }
 
                 /*
@@ -677,6 +714,144 @@ private void generateMethod(
                 yield toTypeScriptName(name);
             }
         };
+    }
+
+    /**
+     * Convert a Java type expression used inside a generic
+     * (e.g. a Map key or value) to TypeScript.
+     */
+    private String mapGenericType(
+            String expression) {
+
+        expression =
+                expression.trim();
+
+        return switch (expression) {
+
+            case "java.lang.String",
+                 "java.lang.Character" ->
+                    "string";
+
+            case "java.lang.Boolean" ->
+                    "boolean";
+
+            case "java.lang.Integer",
+                 "java.lang.Long",
+                 "java.lang.Double",
+                 "java.lang.Float",
+                 "java.lang.Short",
+                 "java.lang.Byte",
+                 "java.math.BigDecimal",
+                 "java.math.BigInteger" ->
+                    "number";
+
+            case "java.lang.Object" ->
+                    "unknown";
+
+            default -> {
+
+                if (expression.startsWith(
+                        "java.util.List<")) {
+
+                    String inner =
+                            expression.substring(
+                                    "java.util.List<".length(),
+                                    expression.length() - 1
+                            );
+
+                    yield mapGenericType(inner)
+                            + "[]";
+                }
+
+                if (expression.startsWith(
+                        "java.util.Set<")) {
+
+                    String inner =
+                            expression.substring(
+                                    "java.util.Set<".length(),
+                                    expression.length() - 1
+                            );
+
+                    yield mapGenericType(inner)
+                            + "[]";
+                }
+
+                if (expression.startsWith(
+                        "java.util.Optional<")) {
+
+                    String inner =
+                            expression.substring(
+                                    "java.util.Optional<".length(),
+                                    expression.length() - 1
+                            );
+
+                    yield mapGenericType(inner)
+                            + " | null";
+                }
+
+                if (expression.startsWith(
+                        "java.util.Map<")) {
+
+                    String inner =
+                            expression.substring(
+                                    "java.util.Map<".length(),
+                                    expression.length() - 1
+                            );
+
+                    int separator =
+                            topLevelComma(inner);
+
+                    yield "Record<"
+                            + mapGenericType(
+                            inner.substring(
+                                    0,
+                                    separator
+                            )
+                    )
+                            + ", "
+                            + mapGenericType(
+                            inner.substring(
+                                    separator + 1
+                            )
+                    )
+                            + ">";
+                }
+
+                yield toTypeScriptName(expression);
+            }
+        };
+    }
+
+    /**
+     * Find the generic-argument separator comma that sits at
+     * nesting depth zero.
+     */
+    private static int topLevelComma(
+            String text) {
+
+        int depth = 0;
+
+        for (int i = 0;
+             i < text.length();
+             i++) {
+
+            char c = text.charAt(i);
+
+            if (c == '<') {
+                depth++;
+            } else if (c == '>') {
+                depth--;
+            } else if (c == ','
+                    && depth == 0) {
+
+                return i;
+            }
+        }
+
+        throw new IllegalArgumentException(
+                "No top-level comma in: "
+                        + text
+        );
     }
 
     /**

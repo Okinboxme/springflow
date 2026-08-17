@@ -34,9 +34,13 @@ Thumbs.db
 *.tmp
 *.temp
 
+# Backup files
+*.old
+
 # Generated frontend output
 springflow-demo/target/
 test-app/target/
+testapp/target/
 
 # Environment / secrets
 .env

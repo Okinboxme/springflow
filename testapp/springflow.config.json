@@ -1,0 +1,13 @@
+{
+  "name": "testapp",
+  "backend": {
+    "port": 8080
+  },
+  "frontend": {
+    "directory": "frontend",
+    "port": 5173
+  },
+  "springflow": {
+    "apiDirectory": "frontend/src/api"
+  }
+}

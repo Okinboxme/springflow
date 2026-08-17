@@ -1,6 +1,0 @@
-{
-  "name": "test-app",
-  "springflow": "0.1.0-SNAPSHOT",
-  "frontend": "frontend",
-  "generated": "frontend/src/springflow/generated"
-}

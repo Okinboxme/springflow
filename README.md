@@ -37,3 +37,26 @@ public class EmployeeEndpoint {
         // ...
     }
 }
+
+---
+
+## 🛠️ Command-Line Interface
+
+The CLI orchestrates the full application lifecycle. Inside a project it
+generates TypeScript and keeps `frontend/src/api/` synchronized with
+your Java endpoints.
+
+```
+springflow create my-app     # scaffold a new full-stack project
+springflow generate          # generate + sync TypeScript into frontend/src/api
+springflow dev               # generate, sync, then run backend + frontend
+springflow build             # generate, sync, build frontend, package backend
+springflow version           # show version
+springflow help              # show help
+```
+
+```bash
+springflow create my-app
+cd my-app
+springflow dev
+```

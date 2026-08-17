@@ -1,9 +1,6 @@
 package dev.springflow.processor;
 import java.io.IOException;
 import java.io.Writer;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -39,8 +36,6 @@ public class SpringFlowProcessor
 
     private static final String GENERATED_DIRECTORY =
             "springflow/generated";
-    private static final String REACT_GENERATED_DIRECTORY =
-        "D:/springflow/springflow-react/src/springflow/generated";
 
     /*
      * Shared TypeScript client is generated once
@@ -438,8 +433,6 @@ processingEnv.getMessager().printMessage(
                 + relativePath
 );
 
-copyToReactProject(relativePath);
-
             }
 
             processingEnv.getMessager()
@@ -461,57 +454,4 @@ copyToReactProject(relativePath);
                     );
         }
     }
-    /**
- * Copy generated TypeScript files to the React project.
- */
-private void copyToReactProject(
-        String relativePath) {
-
-    try {
-
-        Path source =
-                Path.of(
-                        processingEnv
-                                .getFiler()
-                                .getResource(
-                                        StandardLocation.CLASS_OUTPUT,
-                                        "",
-                                        GENERATED_DIRECTORY
-                                                + "/"
-                                                + relativePath
-                                )
-                                .toUri()
-                );
-
-        Path destination =
-                Path.of(
-                        REACT_GENERATED_DIRECTORY,
-                        relativePath
-                );
-
-        Files.createDirectories(
-                destination.getParent()
-        );
-
-        Files.copy(
-                source,
-                destination,
-                StandardCopyOption.REPLACE_EXISTING
-        );
-
-        processingEnv.getMessager().printMessage(
-                Diagnostic.Kind.NOTE,
-                "SpringFlow copied to React: "
-                        + destination
-        );
-
-    } catch (Exception e) {
-
-        processingEnv.getMessager().printMessage(
-                Diagnostic.Kind.WARNING,
-                "SpringFlow React copy failed: "
-                        + e.getMessage()
-        );
-    }
-}
 }

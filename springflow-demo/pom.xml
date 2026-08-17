@@ -9,7 +9,7 @@
 
     <groupId>dev.springflow.demo</groupId>
     <artifactId>springflow-demo</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.0</version>
 
     <properties>
         <java.version>21</java.version>
@@ -27,19 +27,19 @@
         <dependency>
             <groupId>dev.springflow</groupId>
             <artifactId>springflow-core</artifactId>
-            <version>0.1.0-SNAPSHOT</version>
+            <version>0.1.0</version>
         </dependency>
 
         <dependency>
             <groupId>dev.springflow</groupId>
             <artifactId>springflow-runtime</artifactId>
-            <version>0.1.0-SNAPSHOT</version>
+            <version>0.1.0</version>
         </dependency>
 
         <dependency>
             <groupId>dev.springflow</groupId>
             <artifactId>springflow-boot-starter</artifactId>
-            <version>0.1.0-SNAPSHOT</version>
+            <version>0.1.0</version>
         </dependency>
 
     </dependencies>
@@ -66,7 +66,7 @@
                         <path>
                             <groupId>dev.springflow</groupId>
                             <artifactId>springflow-processor</artifactId>
-                            <version>0.1.0-SNAPSHOT</version>
+                            <version>0.1.0</version>
                         </path>
                     </annotationProcessorPaths>
                 </configuration>

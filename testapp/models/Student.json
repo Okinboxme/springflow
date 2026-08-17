@@ -1,0 +1,37 @@
+{
+  "name": "Student",
+  "fields": [
+    {
+      "name": "id",
+      "type": "Long",
+      "id": true
+    },
+    {
+      "name": "firstName",
+      "type": "String",
+      "required": true,
+      "max": 100
+    },
+    {
+      "name": "lastName",
+      "type": "String",
+      "required": true,
+      "max": 100
+    },
+    {
+      "name": "email",
+      "type": "String",
+      "required": true,
+      "unique": true
+    },
+    {
+      "name": "gpa",
+      "type": "Double"
+    },
+    {
+      "name": "active",
+      "type": "boolean",
+      "default": true
+    }
+  ]
+}
